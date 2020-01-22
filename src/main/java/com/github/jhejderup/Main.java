@@ -23,8 +23,7 @@ public class Main {
     byte[] classfileBuffer = readAllBytes(Paths.get(args[0]));
     ClassReader reader = new ClassReader(classfileBuffer);
     ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
-    PrintMethodSignatures visitor = new PrintMethodSignatures(writer,
-        reader.getClassName());
+    MethodScrapper visitor = new MethodScrapper(writer, reader.getClassName());
     reader.accept(visitor, ClassReader.SKIP_FRAMES);
 
     Files.write(Paths.get(args[1]), method_declerations, StandardCharsets.UTF_8,
@@ -34,11 +33,11 @@ public class Main {
 
   }
 
-  public final static class PrintMethodSignatures extends ClassVisitor {
+  public final static class MethodScrapper extends ClassVisitor {
 
     private final String clazzName;
 
-    public PrintMethodSignatures(ClassWriter cw, String clazzName) {
+    public MethodScrapper(ClassWriter cw, String clazzName) {
       super(Opcodes.ASM7, cw);
       this.clazzName = clazzName;
     }
@@ -46,8 +45,26 @@ public class Main {
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc,
         String signature, String[] exceptions) {
-      method_declerations.add(clazzName + "/" + name + desc);
-      return super.visitMethod(access, name, desc, signature, exceptions);
+      MethodVisitor mv = super
+          .visitMethod(access, name, desc, signature, exceptions);
+      return new CallSiteScrapper(mv);
+    }
+  }
+
+  public final static class CallSiteScrapper extends MethodVisitor {
+    private final MethodVisitor mv;
+
+    public CallSiteScrapper(MethodVisitor mv) {
+      super(Opcodes.ASM7, mv);
+      this.mv = mv;
+    }
+
+    @Override
+    public void visitMethodInsn(int opcode, String owner, String name,
+        String descriptor, boolean isInterface) {
+      if (!isInterface)
+        method_declerations.add(owner + "/" + name + descriptor);
+      super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
     }
   }
 }
