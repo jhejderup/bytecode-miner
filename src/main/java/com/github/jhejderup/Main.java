@@ -63,7 +63,7 @@ public class Main {
     public void visitMethodInsn(int opcode, String owner, String name,
         String descriptor, boolean isInterface) {
       if (!isInterface)
-        method_declerations.add(owner + "/" + name + descriptor);
+        method_declerations.add(owner + "," + name + descriptor);
       super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
     }
   }
